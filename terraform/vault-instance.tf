@@ -9,9 +9,10 @@ data "cloudinit_config" "vault" {
 }
 
 resource "aws_instance" "vault" {
-  ami           = data.aws_ssm_parameter.ami.value
-  instance_type = "t4g.micro"
-  subnet_id     = aws_subnet.main.id
+  ami                  = data.aws_ssm_parameter.ami.value
+  instance_type        = "t4g.micro"
+  subnet_id            = aws_subnet.main.id
+  iam_instance_profile = aws_iam_instance_profile.vault.name
 
   vpc_security_group_ids = [aws_security_group.vault.id]
 
@@ -49,6 +50,14 @@ resource "aws_security_group" "vault" {
     cidr_blocks      = ["0.0.0.0/0"]
     ipv6_cidr_blocks = ["::/0"]
   }
+  ingress {
+    from_port        = 8200
+    to_port          = 8200
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
   egress {
     from_port        = 0
     to_port          = 0
@@ -72,4 +81,63 @@ resource "aws_route53_record" "vault_aaaa" {
   type    = "AAAA"
   ttl     = 300
   records = aws_instance.vault.ipv6_addresses
+}
+
+resource "aws_s3_bucket" "vault" {
+  bucket = "engiqueer-vault"
+}
+
+resource "aws_iam_role" "vault" {
+  name = "vault-instance-role"
+
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_instance_profile" "vault" {
+  name = "vault-instance-profile"
+  role = aws_iam_role.vault.name
+}
+
+resource "aws_iam_role_policy" "vault" {
+  name = "vault"
+  role = aws_iam_role.vault.id
+
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": [
+        "s3:PutObject",
+        "s3:GetObject",
+        "s3:DeleteObject"
+      ],
+      "Effect": "Allow",
+      "Resource": "${aws_s3_bucket.vault.arn}/*"
+    },
+
+    {
+      "Action": [
+        "s3:ListBucket"
+      ],
+      "Effect": "Allow",
+      "Resource": "${aws_s3_bucket.vault.arn}"
+    }
+  ]
+}
+EOF
 }
