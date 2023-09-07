@@ -1,0 +1,12 @@
+- hosts: auth.engiqueer.net
+  collections:
+  - community.docker
+  become: yes
+  roles:
+  - ssh
+  - role: nfs
+    src: authentik
+    dest: /var/authentik
+  - install/caddy
+  - install/docker
+  - authentik

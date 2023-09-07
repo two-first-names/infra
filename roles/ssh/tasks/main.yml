@@ -1,0 +1,4 @@
+- name: Add authorized_keys
+  ansible.posix.authorized_key:
+    user: "{{ ansible_user }}"
+    key: https://github.com/two-first-names.keys

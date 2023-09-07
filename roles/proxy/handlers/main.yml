@@ -1,0 +1,12 @@
+- name: Delete DNS challenge
+  community.general.cloudflare_dns:
+    zone: "{{ zone }}"
+    record: "{{ item.value['dns-01'].resource }}"
+    type: TXT
+    state: absent
+    api_token: "{{ cloudflare_api_token }}"
+  with_dict: "{{ challenge['challenge_data'] }}"
+- name: Restart Caddy
+  service:
+    name: caddy
+    state: restarted

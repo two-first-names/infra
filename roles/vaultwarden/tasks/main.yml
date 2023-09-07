@@ -1,0 +1,16 @@
+- name: Start Vaultwarden
+  docker_container:
+    name: vaultwarden
+    image: vaultwarden/server:latest
+    state: started
+    restart: true
+    ports:
+    - "127.0.0.1:8080:80"
+    volumes:
+    - /var/vaultwarden/:/data/
+- name: Copy Caddyfile
+  copy:
+    src: Caddyfile
+    dest: /etc/caddy/Caddyfile
+  notify:
+  - Restart Caddy

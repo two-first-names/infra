@@ -1,0 +1,93 @@
+- name: Generate Let's Encrypt account key
+  community.crypto.openssl_privatekey:
+    path: "{{ account_key_path }}"
+
+- name: Create private key (RSA, 4096 bits)
+  community.crypto.openssl_privatekey:
+    path: "{{ key_path }}"
+
+- name: Generate an OpenSSL Certificate Signing Request
+  community.crypto.openssl_csr:
+    path: "{{ csr_path }}"
+    privatekey_path: "{{ key_path }}"
+    common_name: "*.{{ zone }}"
+    subject_alt_name: "DNS:{{ zone }}"
+
+- name: Make sure account exists and has given contacts. We agree to TOS.
+  community.crypto.acme_account:
+    account_key_src: "{{ account_key_path }}"
+    acme_directory: "{{ acme_directory }}"
+    acme_version: "{{ acme_version }}"
+    state: present
+    terms_agreed: true
+    contact:
+    - mailto:acme@engiqueer.net
+
+- name: Create a challenge using a account key file.
+  community.crypto.acme_certificate:
+    account_key_src: "{{ account_key_path }}"
+    account_email: "{{ acme_email }}"
+    src: "{{ csr_path }}"
+    fullchain_dest: "{{ crt_fullchain_path }}"
+    challenge: dns-01
+    acme_directory: "{{ acme_directory }}"
+    acme_version: 2
+    terms_agreed: true
+    remaining_days: 60
+    force: true
+  register: challenge
+
+- name: Certificate does not exists or needs to be renewed
+  when: challenge["challenge_data"] is defined and (challenge["challenge_data"] | length > 0)
+  block:
+  - name: Set challenge data
+    ansible.builtin.set_fact:
+      challenge: "{{ challenge }}"
+
+  - name: Create record
+    community.general.cloudflare_dns:
+      zone: "{{ zone }}"
+      record: "{{ item.value['dns-01'].resource }}"
+      type: TXT
+      value: "{{ item.value['dns-01'].resource_value }}"
+      api_token: "{{ cloudflare_api_token }}"
+    with_dict: "{{ challenge['challenge_data'] }}"
+
+  - name: Let the challenge be validated and retrieve the cert and intermediate certificate
+    community.crypto.acme_certificate:
+      account_key_src: "{{ account_key_path }}"
+      account_email: "{{ acme_email }}"
+      src: "{{ csr_path }}"
+      dest: "{{ crt_path }}"
+      fullchain_dest: "{{ crt_fullchain_path }}"
+      challenge: dns-01
+      acme_directory: "{{ acme_directory }}"
+      acme_version: 2
+      terms_agreed: true
+      remaining_days: 60
+      data: "{{ challenge }}"
+    notify:
+    - Delete DNS challenge
+
+- name: Copy private key
+  copy:
+    remote_src: yes
+    owner: caddy
+    group: caddy
+    src: "{{ key_path }}"
+    dest: /etc/caddy/engiqueer.net.key
+
+- name: Copy certificate
+  copy:
+    remote_src: yes
+    owner: caddy
+    group: caddy
+    src: "{{ crt_fullchain_path }}"
+    dest: /etc/caddy/engiqueer.net-fullchain.crt
+
+- name: Copy Caddyfile
+  template:
+    src: Caddyfile.j2
+    dest: /etc/caddy/Caddyfile
+  notify:
+  - Restart Caddy

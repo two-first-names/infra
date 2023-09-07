@@ -1,0 +1,6 @@
+- hosts: proxy.engiqueer.net
+  become: yes
+  roles:
+  - ssh
+  - install/caddy
+  - proxy

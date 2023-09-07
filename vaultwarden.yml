@@ -1,0 +1,12 @@
+- hosts: vault.engiqueer.net
+  collections:
+  - community.docker
+  become: yes
+  roles:
+  - ssh
+  - role: nfs
+    src: vaultwarden
+    dest: /var/vaultwarden
+  - install/caddy
+  - install/docker
+  - vaultwarden

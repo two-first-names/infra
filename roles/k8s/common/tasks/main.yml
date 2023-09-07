@@ -1,0 +1,20 @@
+- name: Install helm
+  become: yes
+  unarchive:
+    src: https://get.helm.sh/helm-v3.12.3-linux-amd64.tar.gz
+    dest: /usr/local/bin
+    extra_opts: "--strip-components=1"
+    owner: root
+    group: root
+    mode: 0755
+    remote_src: true
+  args:
+    creates: /usr/local/bin/helm
+
+- name: Install python3-kubernetes
+  become: yes
+  apt:
+    pkg:
+      - python3-kubernetes
+    state: latest
+    update_cache: true

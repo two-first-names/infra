@@ -1,0 +1,22 @@
+- name: Creates directory
+  become: yes
+  file:
+    path: authentik
+    state: directory
+- name: Copy docker-compose.yml
+  copy:
+    src: docker-compose.yml
+    dest: authentik/docker-compose.yml
+- name: Copy .env
+  copy:
+    src: .env
+    dest: authentik/.env
+- name: Start Authentik
+  docker_compose:
+    project_src: authentik
+- name: Copy Caddyfile
+  copy:
+    src: Caddyfile
+    dest: /etc/caddy/Caddyfile
+  notify:
+  - Restart Caddy

@@ -1,0 +1,11 @@
+cloud.engiqueer.net {
+  reverse_proxy https://cloud.engiqueer.net
+
+  tls /etc/caddy/engiqueer.net-fullchain.crt /etc/caddy/engiqueer.net.key
+}
+
+auth.engiqueer.net {
+  reverse_proxy https://auth.engiqueer.net
+
+  tls /etc/caddy/engiqueer.net-fullchain.crt /etc/caddy/engiqueer.net.key
+}

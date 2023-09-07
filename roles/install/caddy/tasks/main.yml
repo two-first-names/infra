@@ -1,0 +1,37 @@
+- name: Install aptitude
+  apt:
+    name: aptitude
+    state: latest
+    update_cache: true
+
+- name: Install required system packages
+  apt:
+    pkg:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - software-properties-common
+    state: latest
+    update_cache: true
+
+- name: Add Caddy GPG apt Key
+  apt_key:
+    url: https://dl.cloudsmith.io/public/caddy/testing/gpg.key
+    state: present
+
+- name: Add Caddy Repository
+  apt_repository:
+    repo: deb https://dl.cloudsmith.io/public/caddy/testing/deb/debian any-version stable
+    state: present
+
+- name: Update apt and install caddy
+  apt:
+    name: caddy
+    state: latest
+    update_cache: true
+
+- name: Start Caddy
+  service:
+    name: caddy
+    enabled: yes
+    state: started

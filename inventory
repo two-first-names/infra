@@ -1,0 +1,3 @@
+auth.engiqueer.net ansible_user=joe
+proxy.engiqueer.net ansible_user=joe
+vault.engiqueer.net ansible_user=joe

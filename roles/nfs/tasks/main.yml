@@ -1,0 +1,17 @@
+- name: Creates directory
+  become: yes
+  file:
+    path: "{{ dest }}"
+    state: directory
+- name: Install nfs-common
+  become: yes
+  apt:
+    name: nfs-common
+- name: Mount an NFS volume
+  become: yes
+  ansible.posix.mount:
+    src: nas.engiqueer.net:/mnt/pool/{{ src }}
+    path: "{{ dest }}"
+    opts: rw,sync,hard
+    state: mounted
+    fstype: nfs
